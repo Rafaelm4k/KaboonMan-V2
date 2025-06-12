@@ -2,44 +2,61 @@ package io.github.KaabomGame;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Bomb {
-    private static final float EXPLOSION_TIME = 3f; // segundos hasta explotar
-    private static final float EXPLOSION_DURATION = 0.5f; // segundos que dura la explosión
-    private boolean playerHasLeftTile = false;
+    private static final float EXPLOSION_TIME = 3f;
+    private static final float EXPLOSION_DURATION = 0.5f;
+
+    private static Texture explosionSheet;
+    private static Animation<TextureRegion>[] explosionAnimations;
+
+    private float explosionTimer = 0f;
+    private boolean exploding = false;
+    private boolean rendered = false;
 
     private int tileX, tileY;
     private float timer;
     private boolean exploded = false;
-    private float explosionTimer = 0f;
 
-    private Texture bombTexture;  // Textura para la bomba
+    private Texture bombTexture;
     private SpriteBatch batch;
 
-    public boolean playerHasLeftTile() {
-        return playerHasLeftTile;
-    }
-
-    public void checkPlayerPosition(float playerX, float playerY) {
-        int playerTileX = (int)(playerX / GameMap.TILE_SIZE);
-        int playerTileY = (int)(playerY / GameMap.TILE_SIZE);
-
-        if (playerTileX != tileX || playerTileY != tileY) {
-            playerHasLeftTile = true;
-        }
-    }
+    private enum Direction { CENTER, UP, DOWN, LEFT, RIGHT }
 
     public Bomb(int tileX, int tileY) {
         this.tileX = tileX;
         this.tileY = tileY;
         this.timer = EXPLOSION_TIME;
 
-        // Inicializar la textura de la bomba
-        bombTexture = new Texture("bomba.png"); // Asegúrate de tener el archivo bomba.png en la carpeta correcta
-        batch = new SpriteBatch();  // Usamos SpriteBatch para dibujar la textura
+        bombTexture = new Texture("bomba.png");
+        batch = new SpriteBatch();
+
+        // Inicialización de animaciones si no están cargadas
+        if (explosionSheet == null) {
+            explosionSheet = new Texture("explosion.png"); // Asegúrate de tener la textura correcta
+            TextureRegion[][] tmp = TextureRegion.split(explosionSheet, 16, 16); // Ajusta tamaño si es necesario
+
+            explosionAnimations = new Animation[5]; // CENTER, UP, DOWN, LEFT, RIGHT
+
+            // Fila 0 → Centro
+            TextureRegion[] centerFrames = tmp[0];
+            explosionAnimations[Direction.CENTER.ordinal()] = new Animation<>(0.1f, centerFrames);
+
+            // Fila 1 → Medio (para partes verticales)
+            TextureRegion[] middleFrames = tmp[1];
+            explosionAnimations[Direction.UP.ordinal()] = new Animation<>(0.1f, middleFrames);
+            explosionAnimations[Direction.DOWN.ordinal()] = new Animation<>(0.1f, middleFrames);
+
+            // Fila 2 → Finales (para partes horizontales)
+            TextureRegion[] endFrames = tmp[2];
+            explosionAnimations[Direction.LEFT.ordinal()] = new Animation<>(0.1f, endFrames);
+            explosionAnimations[Direction.RIGHT.ordinal()] = new Animation<>(0.1f, endFrames);
+        }
     }
 
     public void update(float delta) {
@@ -65,38 +82,33 @@ public class Bomb {
         return tiles;
     }
 
-
-
-
     public void render(float offsetX, float offsetY) {
         batch.begin();
 
         if (!exploded) {
-            // Dibuja la bomba antes de explotar
             batch.draw(bombTexture, tileX * GameMap.TILE_SIZE + offsetX,
                 tileY * GameMap.TILE_SIZE + offsetY, GameMap.TILE_SIZE, GameMap.TILE_SIZE);
         } else if (explosionTimer > 0) {
-            // Dibuja la explosión en cruz (bomba + 4 direcciones)
-            batch.setColor(1, 0, 0, 1);  // Establecer el color de la explosión (rojo)
+            float elapsed = EXPLOSION_DURATION - explosionTimer;
 
-            // Centro (celda de la bomba)
-            drawExplosionTile(tileX, tileY, offsetX, offsetY);
+            // Dibuja explosión en el centro
+            drawExplosionTile(tileX, tileY, offsetX, offsetY, Direction.CENTER, elapsed);
 
-            // Izquierda
+            // Dibuja explosión a la izquierda
             if (canExplodeAt(tileX - 1, tileY)) {
-                drawExplosionTile(tileX - 1, tileY, offsetX, offsetY);
+                drawExplosionTile(tileX - 1, tileY, offsetX, offsetY, Direction.LEFT, elapsed);
             }
-            // Derecha
+            // Dibuja explosión a la derecha
             if (canExplodeAt(tileX + 1, tileY)) {
-                drawExplosionTile(tileX + 1, tileY, offsetX, offsetY);
+                drawExplosionTile(tileX + 1, tileY, offsetX, offsetY, Direction.RIGHT, elapsed);
             }
-            // Arriba
+            // Dibuja explosión arriba
             if (canExplodeAt(tileX, tileY + 1)) {
-                drawExplosionTile(tileX, tileY + 1, offsetX, offsetY);
+                drawExplosionTile(tileX, tileY + 1, offsetX, offsetY, Direction.UP, elapsed);
             }
-            // Abajo
+            // Dibuja explosión abajo
             if (canExplodeAt(tileX, tileY - 1)) {
-                drawExplosionTile(tileX, tileY - 1, offsetX, offsetY);
+                drawExplosionTile(tileX, tileY - 1, offsetX, offsetY, Direction.DOWN, elapsed);
             }
         }
 
@@ -110,7 +122,6 @@ public class Bomb {
             GameMap.MAP[mapY(y)][x] = GameMap.EMPTY;
             System.out.println("Bloque destruido en (" + x + "," + y + ")");
         }
-
     }
 
     private int mapY(int tileY) {
@@ -118,15 +129,17 @@ public class Bomb {
     }
 
     private void destroyNearbyBlocks() {
-        tryDestroy(tileX, tileY); // centro
-        if (canExplodeAt(tileX - 1, tileY)) tryDestroy(tileX - 1, tileY); // izquierda
-        if (canExplodeAt(tileX + 1, tileY)) tryDestroy(tileX + 1, tileY); // derecha
-        if (canExplodeAt(tileX, tileY + 1)) tryDestroy(tileX, tileY + 1); // arriba
-        if (canExplodeAt(tileX, tileY - 1)) tryDestroy(tileX, tileY - 1); // abajo
+        tryDestroy(tileX, tileY);
+        if (canExplodeAt(tileX - 1, tileY)) tryDestroy(tileX - 1, tileY);
+        if (canExplodeAt(tileX + 1, tileY)) tryDestroy(tileX + 1, tileY);
+        if (canExplodeAt(tileX, tileY + 1)) tryDestroy(tileX, tileY + 1);
+        if (canExplodeAt(tileX, tileY - 1)) tryDestroy(tileX, tileY - 1);
     }
 
-    private void drawExplosionTile(int x, int y, float offsetX, float offsetY) {
-        batch.draw(bombTexture, x * GameMap.TILE_SIZE + offsetX,
+    private void drawExplosionTile(int x, int y, float offsetX, float offsetY, Direction direction, float stateTime) {
+        Animation<TextureRegion> anim = explosionAnimations[direction.ordinal()];
+        TextureRegion currentFrame = anim.getKeyFrame(stateTime, false);
+        batch.draw(currentFrame, x * GameMap.TILE_SIZE + offsetX,
             y * GameMap.TILE_SIZE + offsetY, GameMap.TILE_SIZE, GameMap.TILE_SIZE);
     }
 
@@ -135,7 +148,6 @@ public class Bomb {
             return false;
 
         int tile = GameMap.MAP[mapY(y)][x];
-        // Explosión pasa por vacíos y destruye destructibles, pero no pasa sólidos
         return tile == GameMap.EMPTY || tile == GameMap.DESTRUCTIBLE_BLOCK;
     }
 
@@ -144,8 +156,8 @@ public class Bomb {
     }
 
     public void dispose() {
-        batch.dispose();  // Liberamos los recursos de SpriteBatch
-        bombTexture.dispose();  // Liberamos la textura de la bomba
+        batch.dispose();
+        bombTexture.dispose();
     }
 
     public int getTileX() {
