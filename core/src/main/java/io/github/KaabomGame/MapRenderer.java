@@ -1,46 +1,57 @@
 package io.github.KaabomGame;
 
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 public class MapRenderer {
-    private final ShapeRenderer shapeRenderer;
+
+    private Texture solidTexture;  // Textura para los bloques sólidos
+    private Texture destructibleTexture; // Textura para los bloques destructibles
 
     public MapRenderer() {
-        shapeRenderer = new ShapeRenderer();
+        // Cargamos las texturas para los bloques
+        solidTexture = new Texture("solido.png");  // Cargar textura de bloque sólido
+        destructibleTexture = new Texture("destructibles.png"); // Cargar textura de bloque destructible
     }
 
-    public void render(float offsetX, float offsetY) {
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+    public void render(float offsetX, float offsetY, SpriteBatch batch) {
+        // Recorrer el mapa y dibujar cada celda
+        for (int y = 0; y < GameMap.MAP.length; y++) {
+            for (int x = 0; x < GameMap.MAP[0].length; x++) {
+                // Obtener el tipo de bloque (0, 1, 2, etc)
+                int tile = GameMap.MAP[GameMap.mapY(y)][x];
 
-        for (int row = 0; row < GameMap.MAP.length; row++) {
-            for (int col = 0; col < GameMap.MAP[0].length; col++) {
-                int tile = GameMap.MAP[row][col];
-                float x = offsetX + col * GameMap.TILE_SIZE;
-                float y = offsetY + (GameMap.MAP.length - 1 - row) * GameMap.TILE_SIZE;
+                // Si el bloque es sólido (por ejemplo, representado con 1 en el mapa)
+                if (tile == GameMap.SOLID_BLOCK) {
+                    // Dibujar el bloque sólido en la posición correspondiente
+                    float drawX = x * GameMap.TILE_SIZE + offsetX;
+                    float drawY = y * GameMap.TILE_SIZE + offsetY;
 
-                switch (tile) {
-                    case GameMap.SOLID_BLOCK:
-                        shapeRenderer.setColor(Color.DARK_GRAY);
-                        break;
-                    case GameMap.DESTRUCTIBLE_BLOCK:
-                        shapeRenderer.setColor(new Color(0.55f, 0.27f, 0.07f, 1));
-                        break;
-                    case GameMap.EMPTY:
-                        shapeRenderer.setColor(Color.BLACK);
-                        break;
+                    // Dibujamos la textura del bloque sólido
+                    batch.begin();
+                    batch.draw(solidTexture, drawX, drawY, GameMap.TILE_SIZE, GameMap.TILE_SIZE);
+                    batch.end();
                 }
 
-                shapeRenderer.rect(x, y, GameMap.TILE_SIZE, GameMap.TILE_SIZE);
+                // Si el bloque es destructible (por ejemplo, representado con 2 en el mapa)
+                if (tile == GameMap.DESTRUCTIBLE_BLOCK) {
+                    // Dibujar el bloque destructible en la posición correspondiente
+                    float drawX = x * GameMap.TILE_SIZE + offsetX;
+                    float drawY = y * GameMap.TILE_SIZE + offsetY;
+
+                    // Dibujamos la textura del bloque destructible
+                    batch.begin();
+                    batch.draw(destructibleTexture, drawX, drawY, GameMap.TILE_SIZE, GameMap.TILE_SIZE);
+                    batch.end();
+                }
             }
         }
-
-        shapeRenderer.end();
     }
 
+    // Método para liberar recursos
     public void dispose() {
-        shapeRenderer.dispose();
+        // Liberar las texturas cuando ya no se necesiten
+        solidTexture.dispose();
+        destructibleTexture.dispose();
     }
 }
-
-

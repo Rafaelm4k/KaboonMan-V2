@@ -13,6 +13,7 @@ import java.util.Iterator;
 
 public class GameScreen implements Screen {
     private ArrayList<Bomb> bombs = new ArrayList<>();
+    private ArrayList<Coin> coins = new ArrayList<>(); // Lista de monedas
     private HUD hud;
     final Main game;
     private OrthographicCamera camera;
@@ -34,6 +35,25 @@ public class GameScreen implements Screen {
         mapRenderer = new MapRenderer();
 
         player = new Player(); // Inicializa el player
+
+        // Genera las monedas aleatoriamente sobre bloques destructibles
+        generateCoins();
+    }
+
+    // Método para generar monedas sobre bloques destructibles
+    private void generateCoins() {
+        // Vamos a generar 5 monedas
+        int coinsGenerated = 0;
+        while (coinsGenerated < 5) {
+            int x = (int) (Math.random() * GameMap.MAP[0].length); // Obtener una columna aleatoria
+            int y = (int) (Math.random() * GameMap.MAP.length);    // Obtener una fila aleatoria
+
+            // Comprobar que haya un bloque destructible en esa posición
+            if (GameMap.MAP[GameMap.mapY(y)][x] == GameMap.DESTRUCTIBLE_BLOCK) {
+                coins.add(new Coin(x, y)); // Si es así, generar la moneda
+                coinsGenerated++;
+            }
+        }
     }
 
     @Override
@@ -59,26 +79,36 @@ public class GameScreen implements Screen {
         }
 
         // Renderizamos el mapa primero
-        mapRenderer.render(offsetX, offsetY);
+        mapRenderer.render(offsetX, offsetY, game.batch);
 
         // Luego el jugador
         player.render(offsetX, offsetY);
 
+        // Dibujamos las bombas
         Iterator<Bomb> iter = bombs.iterator();
         while (iter.hasNext()) {
             Bomb bomb = iter.next();
             bomb.update(delta);
             if (bomb.hasExploded()) {
-                // Aquí luego pondremos la lógica para la explosión y borrar la bomba
                 iter.remove();
                 bomb.dispose();
+                // Aquí podemos marcar las monedas que se han revelado
+                revealCoinsAffectedByExplosion(bomb);
             }
         }
-
-        // Dibuja bombas
         for (Bomb bomb : bombs) {
             bomb.render(offsetX, offsetY);
         }
+
+        // Dibujamos las monedas solo si están reveladas
+        for (Coin coin : coins) {
+            if (coinIsRevealed(coin)) {
+                coin.render(offsetX, offsetY);
+            }
+        }
+
+        // Verificamos si el jugador ha recogido alguna moneda
+        collectCoins();
 
         // Finalmente la HUD
         hud.render(game.batch);
@@ -116,7 +146,6 @@ public class GameScreen implements Screen {
         }
     }
 
-
     private void placeBomb() {
         int tileX = (int)(player.getX() / GameMap.TILE_SIZE);
         int tileY = (int)(player.getY() / GameMap.TILE_SIZE); // <-- NO invertir
@@ -126,7 +155,53 @@ public class GameScreen implements Screen {
         }
     }
 
+    // Método para revelar las monedas afectadas por una explosión
+    private void revealCoinsAffectedByExplosion(Bomb bomb) {
+        // Aquí comprobamos las celdas afectadas por la explosión
+        revealCoinIfExploded(bomb.getTileX(), bomb.getTileY()); // Centro
+        revealCoinIfExploded(bomb.getTileX() - 1, bomb.getTileY()); // Izquierda
+        revealCoinIfExploded(bomb.getTileX() + 1, bomb.getTileY()); // Derecha
+        revealCoinIfExploded(bomb.getTileX(), bomb.getTileY() + 1); // Arriba
+        revealCoinIfExploded(bomb.getTileX(), bomb.getTileY() - 1); // Abajo
+    }
 
+    // Verifica si la moneda está en la posición y si es oculta, la revela
+    private void revealCoinIfExploded(int x, int y) {
+        for (Coin coin : coins) {
+            int coinX = (int) (coin.getX() / GameMap.TILE_SIZE);
+            int coinY = (int) (coin.getY() / GameMap.TILE_SIZE);
+            if (coinX == x && coinY == y) {
+                coin.reveal(); // Revela la moneda
+            }
+        }
+    }
+
+    private boolean coinIsRevealed(Coin coin) {
+        return coin.revealed; // Verifica si la moneda está revelada
+    }
+
+    // Método para comprobar si el jugador ha recogido una moneda
+    private void collectCoins() {
+        Iterator<Coin> coinIterator = coins.iterator();
+        while (coinIterator.hasNext()) {
+            Coin coin = coinIterator.next();
+            if (isPlayerOnCoin(coin)) {
+                coinIterator.remove(); // Eliminar la moneda de la lista
+                hud.addScore(1); // Aumentar la puntuación del jugador
+            }
+        }
+    }
+
+    // Verifica si el jugador está sobre la moneda
+    private boolean isPlayerOnCoin(Coin coin) {
+        float playerX = player.getX();
+        float playerY = player.getY();
+        float coinX = coin.getX();
+        float coinY = coin.getY();
+
+        // Comprobar si el jugador está dentro de un rango cercano de la moneda
+        return Math.abs(playerX - coinX) < GameMap.TILE_SIZE / 2 && Math.abs(playerY - coinY) < GameMap.TILE_SIZE / 2;
+    }
 
     private void drawPauseMenu() {
         game.batch.begin();
@@ -163,8 +238,10 @@ public class GameScreen implements Screen {
         mapRenderer.dispose();
         hud.dispose();
         pauseFont.dispose();
+
+        // Dispose de las monedas
+        for (Coin coin : coins) {
+            coin.dispose();
+        }
     }
 }
-
-
-
