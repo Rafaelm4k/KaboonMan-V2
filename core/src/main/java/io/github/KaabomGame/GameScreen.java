@@ -133,7 +133,7 @@ public class GameScreen implements Screen {
         mapRenderer.render(offsetX, offsetY, game.batch);
 
         // Luego el jugador
-        player.render(offsetX, offsetY);
+        player.render(offsetX, offsetY, game.batch);
 
         // Dibujamos las bombas
         Iterator<Bomb> iter = bombs.iterator();
@@ -361,3 +361,5 @@ public class GameScreen implements Screen {
 
     }
 }
+
+
