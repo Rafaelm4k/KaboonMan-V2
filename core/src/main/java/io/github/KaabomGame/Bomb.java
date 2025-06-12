@@ -1,7 +1,7 @@
 package io.github.KaabomGame;
 
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 public class Bomb {
     private static final float EXPLOSION_TIME = 3f; // segundos hasta explotar
@@ -13,8 +13,8 @@ public class Bomb {
     private boolean exploded = false;
     private float explosionTimer = 0f;
 
-    private ShapeRenderer shapeRenderer;
-
+    private Texture bombTexture;  // Textura para la bomba
+    private SpriteBatch batch;
 
     public boolean playerHasLeftTile() {
         return playerHasLeftTile;
@@ -33,7 +33,10 @@ public class Bomb {
         this.tileX = tileX;
         this.tileY = tileY;
         this.timer = EXPLOSION_TIME;
-        this.shapeRenderer = new ShapeRenderer();
+
+        // Inicializar la textura de la bomba
+        bombTexture = new Texture("bomba.png"); // Asegúrate de tener el archivo bomba.png en la carpeta correcta
+        batch = new SpriteBatch();  // Usamos SpriteBatch para dibujar la textura
     }
 
     public void update(float delta) {
@@ -42,7 +45,6 @@ public class Bomb {
             if (timer <= 0) {
                 exploded = true;
                 explosionTimer = EXPLOSION_DURATION;
-
                 destroyNearbyBlocks();
             }
         } else {
@@ -51,17 +53,15 @@ public class Bomb {
     }
 
     public void render(float offsetX, float offsetY) {
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        batch.begin();
 
         if (!exploded) {
             // Dibuja la bomba antes de explotar
-            shapeRenderer.setColor(Color.WHITE);
-            shapeRenderer.circle(tileX * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f + offsetX,
-                tileY * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f + offsetY,
-                GameMap.TILE_SIZE / 2f);
+            batch.draw(bombTexture, tileX * GameMap.TILE_SIZE + offsetX,
+                tileY * GameMap.TILE_SIZE + offsetY, GameMap.TILE_SIZE, GameMap.TILE_SIZE);
         } else if (explosionTimer > 0) {
             // Dibuja la explosión en cruz (bomba + 4 direcciones)
-            shapeRenderer.setColor(Color.RED);
+            batch.setColor(1, 0, 0, 1);  // Establecer el color de la explosión (rojo)
 
             // Centro (celda de la bomba)
             drawExplosionTile(tileX, tileY, offsetX, offsetY);
@@ -84,7 +84,7 @@ public class Bomb {
             }
         }
 
-        shapeRenderer.end();
+        batch.end();
     }
 
     private void tryDestroy(int x, int y) {
@@ -101,7 +101,6 @@ public class Bomb {
         return GameMap.MAP.length - 1 - tileY;
     }
 
-
     private void destroyNearbyBlocks() {
         tryDestroy(tileX, tileY); // centro
         if (canExplodeAt(tileX - 1, tileY)) tryDestroy(tileX - 1, tileY); // izquierda
@@ -110,12 +109,9 @@ public class Bomb {
         if (canExplodeAt(tileX, tileY - 1)) tryDestroy(tileX, tileY - 1); // abajo
     }
 
-
-
     private void drawExplosionTile(int x, int y, float offsetX, float offsetY) {
-        shapeRenderer.rect(x * GameMap.TILE_SIZE + offsetX,
-            y * GameMap.TILE_SIZE + offsetY,
-            GameMap.TILE_SIZE, GameMap.TILE_SIZE);
+        batch.draw(bombTexture, x * GameMap.TILE_SIZE + offsetX,
+            y * GameMap.TILE_SIZE + offsetY, GameMap.TILE_SIZE, GameMap.TILE_SIZE);
     }
 
     private boolean canExplodeAt(int x, int y) {
@@ -132,7 +128,8 @@ public class Bomb {
     }
 
     public void dispose() {
-        shapeRenderer.dispose();
+        batch.dispose();  // Liberamos los recursos de SpriteBatch
+        bombTexture.dispose();  // Liberamos la textura de la bomba
     }
 
     public int getTileX() {
@@ -143,5 +140,3 @@ public class Bomb {
         return tileY;
     }
 }
-
-
