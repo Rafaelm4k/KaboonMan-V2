@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color;
 public class Bomb {
     private static final float EXPLOSION_TIME = 3f; // segundos hasta explotar
     private static final float EXPLOSION_DURATION = 0.5f; // segundos que dura la explosión
+    private boolean playerHasLeftTile = false;
 
     private int tileX, tileY;
     private float timer;
@@ -13,6 +14,20 @@ public class Bomb {
     private float explosionTimer = 0f;
 
     private ShapeRenderer shapeRenderer;
+
+
+    public boolean playerHasLeftTile() {
+        return playerHasLeftTile;
+    }
+
+    public void checkPlayerPosition(float playerX, float playerY) {
+        int playerTileX = (int)(playerX / GameMap.TILE_SIZE);
+        int playerTileY = (int)(playerY / GameMap.TILE_SIZE);
+
+        if (playerTileX != tileX || playerTileY != tileY) {
+            playerHasLeftTile = true;
+        }
+    }
 
     public Bomb(int tileX, int tileY) {
         this.tileX = tileX;
@@ -40,7 +55,7 @@ public class Bomb {
 
         if (!exploded) {
             // Dibuja la bomba antes de explotar
-            shapeRenderer.setColor(Color.BLACK);
+            shapeRenderer.setColor(Color.WHITE);
             shapeRenderer.circle(tileX * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f + offsetX,
                 tileY * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f + offsetY,
                 GameMap.TILE_SIZE / 2f);

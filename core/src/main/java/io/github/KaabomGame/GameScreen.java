@@ -54,7 +54,7 @@ public class GameScreen implements Screen {
         player.setOffsets(offsetX, offsetY);
 
         if (!paused) {
-            player.update(delta);
+            player.update(delta, bombs);
             hud.update(delta);
         }
 
@@ -119,12 +119,15 @@ public class GameScreen implements Screen {
 
     private void placeBomb() {
         int tileX = (int)(player.getX() / GameMap.TILE_SIZE);
-        int tileY = (int)(player.getY() / GameMap.TILE_SIZE); // <-- NO invertir
+        int tileY = (int)(player.getY() / GameMap.TILE_SIZE);
 
         if (bombs.size() < 1) {
             bombs.add(new Bomb(tileX, tileY));
+            player.setIgnoreBombTile(tileX, tileY); // <- MUY IMPORTANTE
         }
     }
+
+
 
 
 
