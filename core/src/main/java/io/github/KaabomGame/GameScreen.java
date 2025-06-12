@@ -13,6 +13,7 @@ import java.util.Iterator;
 
 public class GameScreen implements Screen {
     private ArrayList<Bomb> bombs = new ArrayList<>();
+    private ArrayList<Enemy> enemies;
     private HUD hud;
     final Main game;
     private OrthographicCamera camera;
@@ -32,7 +33,18 @@ public class GameScreen implements Screen {
         pauseFont = new BitmapFont();
         pauseFont.getData().setScale(2);
         mapRenderer = new MapRenderer();
+        enemies = new ArrayList<>();
+        enemies.add(new Enemy(
+            5 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            5 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
+        ));
+        enemies.add(new Enemy(
+            7 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
+        ));
 
+
+        // Por ejemplo
         player = new Player(); // Inicializa el player
     }
 
@@ -56,13 +68,17 @@ public class GameScreen implements Screen {
         if (!paused) {
             player.update(delta, bombs);
             hud.update(delta);
+            for (Enemy enemy : enemies) {
+                enemy.update(delta, player, bombs);
+            }
         }
 
-        // Renderizamos el mapa primero
         mapRenderer.render(offsetX, offsetY);
-
-        // Luego el jugador
         player.render(offsetX, offsetY);
+
+        for (Enemy enemy : enemies) {
+            enemy.render(offsetX, offsetY);
+        }
 
         Iterator<Bomb> iter = bombs.iterator();
         while (iter.hasNext()) {
