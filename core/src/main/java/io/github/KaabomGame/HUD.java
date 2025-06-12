@@ -13,8 +13,8 @@ public class HUD {
 
     public HUD() {
         this.score = 0;
-        this.lives = 2;
-        this.timeRemaining = 180; // 3 minutos por ejemplo
+        this.lives = 3;
+        this.timeRemaining = 240; // 3 minutos por ejemplo
         this.font = new BitmapFont();
         font.setColor(Color.WHITE);
         font.getData().setScale(2);

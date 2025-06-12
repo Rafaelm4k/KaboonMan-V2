@@ -32,6 +32,7 @@ public class GameScreen implements Screen {
     private Sound bombPlaceSound;
     private Sound explosionSound;
     private Sound enemyDieSound;
+    private float damageCooldown = 0f;
 
 
 
@@ -115,6 +116,9 @@ public class GameScreen implements Screen {
         if (!paused) {
             player.update(delta, bombs);
             hud.update(delta);
+            checkPlayerEnemyCollision();
+
+
             for (Enemy enemy : enemies) {
                 enemy.update(delta, player, bombs);
             }
@@ -167,6 +171,33 @@ public class GameScreen implements Screen {
             drawPauseMenu();
         }
     }
+
+    private void checkPlayerEnemyCollision() {
+        if (damageCooldown > 0) {
+            damageCooldown -= Gdx.graphics.getDeltaTime();
+            return;
+        }
+
+        for (Enemy enemy : enemies) {
+            if (!enemy.isAlive()) continue;
+
+            float dx = Math.abs(player.getX() - enemy.getX());
+            float dy = Math.abs(player.getY() - enemy.getY());
+
+            if (dx < GameMap.TILE_SIZE / 2 && dy < GameMap.TILE_SIZE / 2) {
+                hud.loseLife();
+                damageCooldown = 2f; // 2 segundos de invulnerabilidad
+
+                if (hud.isGameOver()) {
+                    // Mostrar Game Over o regresar al menú
+                    game.setScreen(new MenuScreen(game)); // puedes cambiar esto a una pantalla de Game Over si quieres
+                }
+
+                break;
+            }
+        }
+    }
+
 
     private void killEnemiesInExplosion(Bomb bomb) {
         List<int[]> affectedTiles = bomb.getAffectedTiles();
