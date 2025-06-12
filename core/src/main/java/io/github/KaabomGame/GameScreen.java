@@ -11,6 +11,8 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 
 public class GameScreen implements Screen {
     private ArrayList<Bomb> bombs = new ArrayList<>();
@@ -26,6 +28,12 @@ public class GameScreen implements Screen {
     private final String[] pauseOptions = {"Reanudar", "Salir al menú"};
     private BitmapFont pauseFont;
     private Player player;
+    private Music gameMusic;
+    private Sound bombPlaceSound;
+    private Sound explosionSound;
+    private Sound enemyDieSound;
+
+
 
     public GameScreen(final Main game) {
         this.game = game;
@@ -51,10 +59,24 @@ public class GameScreen implements Screen {
 
 
         // Por ejemplo
-        player = new Player(); // Inicializa el player
+        player = new Player();// Inicializa el player
+
+        // Cargar y reproducir música de fondo
+        gameMusic = Gdx.audio.newMusic(Gdx.files.internal("music/MusicInGame.ogg"));
+        gameMusic.setLooping(true);
+        gameMusic.setVolume(0.2f); // Puedes ajustar el volumen (0.0 a 1.0)
+        gameMusic.play();
+
 
         // Genera las monedas aleatoriamente sobre bloques destructibles
         generateCoins();
+
+        // Cargar sonidos
+        bombPlaceSound = Gdx.audio.newSound(Gdx.files.internal("sounds/PlaceBomb.ogg"));
+        explosionSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Explosion.ogg"));
+        enemyDieSound = Gdx.audio.newSound(Gdx.files.internal("sounds/EnemyDie.ogg"));
+
+
     }
 
     // Método para generar monedas sobre bloques destructibles
@@ -117,6 +139,7 @@ public class GameScreen implements Screen {
             if (bomb.hasExploded()) {
                 iter.remove();
                 bomb.dispose();
+                explosionSound.play(0.7f);
                 // Aquí podemos marcar las monedas que se han revelado
                 revealCoinsAffectedByExplosion(bomb);
                 killEnemiesInExplosion(bomb);
@@ -157,6 +180,7 @@ public class GameScreen implements Screen {
             for (int[] tile : affectedTiles) {
                 if (tile[0] == enemyTileX && tile[1] == enemyTileY) {
                     enemy.kill();
+                    enemyDieSound.play(0.7f);
                     break;
                 }
             }
@@ -200,6 +224,7 @@ public class GameScreen implements Screen {
         if (bombs.size() < 1) {
             bombs.add(new Bomb(tileX, tileY));
             player.setIgnoreBombTile(tileX, tileY); // <- MUY IMPORTANTE
+            bombPlaceSound.play(0.7f); // Volumen de 0.0 a 1.0
         }
     }
 
@@ -293,5 +318,15 @@ public class GameScreen implements Screen {
         for (Coin coin : coins) {
             coin.dispose();
         }
+
+        if (gameMusic != null) {
+            gameMusic.stop();
+            gameMusic.dispose();
+        }
+
+        if (bombPlaceSound != null) bombPlaceSound.dispose();
+        if (explosionSound != null) explosionSound.dispose();
+        if (enemyDieSound != null) enemyDieSound.dispose();
+
     }
 }

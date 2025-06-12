@@ -3,13 +3,14 @@ package io.github.KaabomGame;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Texture;  // <-- Importa textura
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.audio.Music;// <-- IMPORTANTE
 
 public class MenuScreen implements Screen {
 
@@ -20,7 +21,8 @@ public class MenuScreen implements Screen {
     private final String[] options = {"Iniciar partida", "Salir"};
     private OrthographicCamera camera;
     private Viewport viewport;
-    private Texture background;  // <-- Textura fondo
+    private Texture background;
+    private Music menuMusic;// <-- NUEVO
 
     public MenuScreen(final Main game) {
         this.game = game;
@@ -30,7 +32,13 @@ public class MenuScreen implements Screen {
         viewport = new FitViewport(Main.V_WIDTH, Main.V_HEIGHT, camera);
         viewport.apply();
 
-        background = new Texture(Gdx.files.internal("FondoMenu.png")); // Carga la imagen
+        background = new Texture(Gdx.files.internal("FondoMenu.png"));
+
+        // Carga y reproduce la música
+        menuMusic = Gdx.audio.newMusic(Gdx.files.internal("music/MusicMenu.ogg"));
+        menuMusic.setLooping(true);
+        menuMusic.setVolume(0.2f); // Puedes ajustar el volumen
+        menuMusic.play();
     }
 
     @Override
@@ -45,22 +53,15 @@ public class MenuScreen implements Screen {
         game.batch.setProjectionMatrix(camera.combined);
         game.batch.begin();
 
-        // Dibuja el fondo a pantalla completa (en la resolución virtual)
         game.batch.draw(background, 0, 0, Main.V_WIDTH, Main.V_HEIGHT);
 
-        // Dibuja el menú encima
         for (int i = 0; i < options.length; i++) {
             String text = options[i];
             layout.setText(font, text);
             float x = (Main.V_WIDTH - layout.width) / 2;
             float y = Main.V_HEIGHT / 2 + 30 * (options.length - i);
 
-            if (i == selectedOption) {
-                font.setColor(1, 1, 0, 1); // Amarillo opción seleccionada
-            } else {
-                font.setColor(1, 1, 1, 1); // Blanco normal
-            }
-
+            font.setColor(i == selectedOption ? 1 : 1, i == selectedOption ? 1 : 1, i == selectedOption ? 0 : 1, 1);
             font.draw(game.batch, text, x, y);
         }
 
@@ -76,6 +77,7 @@ public class MenuScreen implements Screen {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             if (selectedOption == 0) {
+                menuMusic.stop();      // Detener música al iniciar juego
                 game.setScreen(new GameScreen(game));
             } else if (selectedOption == 1) {
                 Gdx.app.exit();
@@ -90,15 +92,17 @@ public class MenuScreen implements Screen {
 
     @Override public void show() {}
     @Override public void hide() {}
-    @Override public void pause() {}
-    @Override public void resume() {}
+
+    @Override
+    public void pause() {}
+
+    @Override
+    public void resume() {}
 
     @Override
     public void dispose() {
         font.dispose();
-        background.dispose();  // <-- Liberar textura fondo
+        background.dispose();
+        menuMusic.dispose(); // <-- Liberar recurso de música
     }
 }
-
-
-
