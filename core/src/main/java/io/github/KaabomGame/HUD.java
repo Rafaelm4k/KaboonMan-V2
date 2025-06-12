@@ -9,7 +9,6 @@ public class HUD {
     private int score;
     private int lives;
     private float timeRemaining; // en segundos
-
     private final BitmapFont font;
 
     public HUD() {
@@ -34,6 +33,7 @@ public class HUD {
         batch.end();
     }
 
+    // Método que aumenta la puntuación del jugador cuando recoge una moneda
     public void addScore(int value) {
         this.score += value;
     }
@@ -56,4 +56,3 @@ public class HUD {
         font.dispose();
     }
 }
-

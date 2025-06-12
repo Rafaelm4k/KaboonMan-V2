@@ -3,19 +3,12 @@ package io.github.KaabomGame;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.Color;
 import java.util.List;
-import java.util.Random;
 
 public class Enemy {
-    private static final float SIZE = 26f;
+    private static final float SIZE = 28f;
     private float x, y;
-    private float speed = 90;
-
-    // Dirección de movimiento actual (empezamos a la derecha)
-    private int dirX = 1;
-    private int dirY = 0;
-
+    private float speed = 60;
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
-    private Random random = new Random();
 
     public Enemy(float x, float y) {
         this.x = x;
@@ -23,47 +16,37 @@ public class Enemy {
     }
 
     public void update(float delta, Player player, List<Bomb> bombs) {
-        float moveX = dirX * speed * delta;
-        float moveY = dirY * speed * delta;
+        float bestMoveX = 0;
+        float bestMoveY = 0;
+        float bestDistance = Float.MAX_VALUE;
 
-        if (canMoveTo(x + moveX, y + moveY, bombs)) {
-            x += moveX;
-            y += moveY;
-        } else {
-            // Elige aleatoriamente una nueva dirección válida
-            tryNewRandomDirection(delta, bombs);
-        }
-    }
-
-    private void tryNewRandomDirection(float delta, List<Bomb> bombs) {
+        // Opciones de movimiento: derecha, izquierda, arriba, abajo
         int[][] directions = {
-            {1, 0},  // derecha
-            {-1, 0}, // izquierda
-            {0, 1},  // arriba
-            {0, -1}  // abajo
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1}
         };
-
-        // Mezclamos las direcciones para probar en orden aleatorio
-        for (int i = 0; i < directions.length; i++) {
-            int swapIndex = random.nextInt(directions.length);
-            int[] temp = directions[i];
-            directions[i] = directions[swapIndex];
-            directions[swapIndex] = temp;
-        }
 
         for (int[] dir : directions) {
             float moveX = dir[0] * speed * delta;
             float moveY = dir[1] * speed * delta;
 
-            if (canMoveTo(x + moveX, y + moveY, bombs)) {
-                dirX = dir[0];
-                dirY = dir[1];
-                x += moveX;
-                y += moveY;
-                return;
+            float newX = x + moveX;
+            float newY = y + moveY;
+
+            if (canMoveTo(newX, newY, bombs)) {
+                float dx = player.getX() - newX;
+                float dy = player.getY() - newY;
+                float distance = dx * dx + dy * dy; // No hace falta sqrt
+
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestMoveX = moveX;
+                    bestMoveY = moveY;
+                }
             }
         }
-        // Si ninguna dirección es posible, no se mueve este frame
+
+        x += bestMoveX;
+        y += bestMoveY;
     }
 
     public void render(float offsetX, float offsetY) {
@@ -105,16 +88,24 @@ public class Enemy {
                     return false;
                 }
 
-                // Si quieres considerar bombas como obstáculo:
-                /*
+                // Descomenta esto si quieres que las bombas bloqueen al enemigo:
+
                 for (Bomb bomb : bombs) {
                     if (bomb.getTileX() == tx && bomb.getTileY() == ty) {
                         return false;
                     }
                 }
-                */
+
             }
         }
         return true;
+    }
+
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
     }
 }
