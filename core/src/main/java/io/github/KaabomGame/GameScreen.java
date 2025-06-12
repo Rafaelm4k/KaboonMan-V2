@@ -118,6 +118,7 @@ public class GameScreen implements Screen {
                 killEnemiesInExplosion(bomb);
             }
         }
+
         for (Bomb bomb : bombs) {
             bomb.render(offsetX, offsetY);
         }
