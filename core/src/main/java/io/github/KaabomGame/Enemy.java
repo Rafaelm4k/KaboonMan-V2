@@ -3,6 +3,7 @@ package io.github.KaabomGame;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.Color;
 import java.util.List;
+import java.util.Random;
 
 public class Enemy {
     private static final float SIZE = 28f;
@@ -10,6 +11,10 @@ public class Enemy {
     private float speed = 60;
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
     private boolean alive = true;
+    private float moveTimer = 0;
+    private float moveInterval = 1.0f; // cada 1 segundo decide nueva dirección
+    private int[] currentDirection = {0, 0};
+    private Random random = new Random();
 
     public Enemy(float x, float y) {
         this.x = x;
@@ -17,39 +22,68 @@ public class Enemy {
     }
 
     public void update(float delta, Player player, List<Bomb> bombs) {
-        float bestMoveX = 0;
-        float bestMoveY = 0;
-        float bestDistance = Float.MAX_VALUE;
-
         if (!alive) return;
 
-        // Opciones de movimiento: derecha, izquierda, arriba, abajo
-        int[][] directions = {
-            {1, 0}, {-1, 0}, {0, 1}, {0, -1}
-        };
+        int enemyTileX = (int)(x / GameMap.TILE_SIZE);
+        int enemyTileY = (int)(y / GameMap.TILE_SIZE);
+        int playerTileX = (int)(player.getX() / GameMap.TILE_SIZE);
+        int playerTileY = (int)(player.getY() / GameMap.TILE_SIZE);
 
-        for (int[] dir : directions) {
-            float moveX = dir[0] * speed * delta;
-            float moveY = dir[1] * speed * delta;
+        boolean playerInRange = Math.abs(enemyTileX - playerTileX) <= 3 && Math.abs(enemyTileY - playerTileY) <= 3;
 
+        if (playerInRange) {
+            float bestMoveX = 0;
+            float bestMoveY = 0;
+            float bestDistance = Float.MAX_VALUE;
+
+            int[][] directions = {
+                {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+            };
+
+            for (int[] dir : directions) {
+                float moveX = dir[0] * speed * delta;
+                float moveY = dir[1] * speed * delta;
+
+                float newX = x + moveX;
+                float newY = y + moveY;
+
+                if (canMoveTo(newX, newY, bombs)) {
+                    float dx = player.getX() - newX;
+                    float dy = player.getY() - newY;
+                    float distance = dx * dx + dy * dy;
+
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        bestMoveX = moveX;
+                        bestMoveY = moveY;
+                    }
+                }
+            }
+
+            x += bestMoveX;
+            y += bestMoveY;
+        } else {
+            moveTimer += delta;
+            if (moveTimer >= moveInterval) {
+                moveTimer = 0;
+                int[][] directions = {
+                    {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+                };
+                currentDirection = directions[random.nextInt(directions.length)];
+            }
+
+            float moveX = currentDirection[0] * speed * delta;
+            float moveY = currentDirection[1] * speed * delta;
             float newX = x + moveX;
             float newY = y + moveY;
 
             if (canMoveTo(newX, newY, bombs)) {
-                float dx = player.getX() - newX;
-                float dy = player.getY() - newY;
-                float distance = dx * dx + dy * dy; // No hace falta sqrt
-
-                if (distance < bestDistance) {
-                    bestDistance = distance;
-                    bestMoveX = moveX;
-                    bestMoveY = moveY;
-                }
+                x = newX;
+                y = newY;
+            } else {
+                moveTimer = moveInterval; // fuerza cambio de dirección en siguiente frame
             }
         }
-
-        x += bestMoveX;
-        y += bestMoveY;
     }
 
     public boolean isAlive() {
@@ -101,14 +135,11 @@ public class Enemy {
                     return false;
                 }
 
-                // Descomenta esto si quieres que las bombas bloqueen al enemigo:
-
                 for (Bomb bomb : bombs) {
                     if (bomb.getTileX() == tx && bomb.getTileY() == ty) {
                         return false;
                     }
                 }
-
             }
         }
         return true;

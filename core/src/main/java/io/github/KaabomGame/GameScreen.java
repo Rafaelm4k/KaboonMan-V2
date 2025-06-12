@@ -37,11 +37,15 @@ public class GameScreen implements Screen {
         mapRenderer = new MapRenderer();
         enemies = new ArrayList<>();
         enemies.add(new Enemy(
-            5 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            6 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
             5 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
         ));
         enemies.add(new Enemy(
             7 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
+        ));
+        enemies.add(new Enemy(
+            13 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
             1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
         ));
 
@@ -57,7 +61,7 @@ public class GameScreen implements Screen {
     private void generateCoins() {
         // Vamos a generar 5 monedas
         int coinsGenerated = 0;
-        while (coinsGenerated < 5) {
+        while (coinsGenerated < 15) {
             int x = (int) (Math.random() * GameMap.MAP[0].length); // Obtener una columna aleatoria
             int y = (int) (Math.random() * GameMap.MAP.length);    // Obtener una fila aleatoria
 
