@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class GameScreen implements Screen {
     private ArrayList<Bomb> bombs = new ArrayList<>();
@@ -114,6 +115,7 @@ public class GameScreen implements Screen {
                 bomb.dispose();
                 // Aquí podemos marcar las monedas que se han revelado
                 revealCoinsAffectedByExplosion(bomb);
+                killEnemiesInExplosion(bomb);
             }
         }
         for (Bomb bomb : bombs) {
@@ -137,6 +139,26 @@ public class GameScreen implements Screen {
             drawPauseMenu();
         }
     }
+
+    private void killEnemiesInExplosion(Bomb bomb) {
+        List<int[]> affectedTiles = bomb.getAffectedTiles();
+
+        for (Enemy enemy : enemies) {
+            if (!enemy.isAlive()) continue;
+
+            int enemyTileX = (int)(enemy.getX() / GameMap.TILE_SIZE);
+            int enemyTileY = (int)(enemy.getY() / GameMap.TILE_SIZE);
+
+            for (int[] tile : affectedTiles) {
+                if (tile[0] == enemyTileX && tile[1] == enemyTileY) {
+                    enemy.kill();
+                    break;
+                }
+            }
+        }
+    }
+
+
 
     private void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {

@@ -9,6 +9,7 @@ public class Enemy {
     private float x, y;
     private float speed = 60;
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
+    private boolean alive = true;
 
     public Enemy(float x, float y) {
         this.x = x;
@@ -19,6 +20,8 @@ public class Enemy {
         float bestMoveX = 0;
         float bestMoveY = 0;
         float bestDistance = Float.MAX_VALUE;
+
+        if (!alive) return;
 
         // Opciones de movimiento: derecha, izquierda, arriba, abajo
         int[][] directions = {
@@ -49,7 +52,17 @@ public class Enemy {
         y += bestMoveY;
     }
 
+    public boolean isAlive() {
+        return alive;
+    }
+
+    public void kill() {
+        alive = false;
+    }
+
     public void render(float offsetX, float offsetY) {
+        if (!alive) return;
+
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(Color.RED);
         shapeRenderer.circle(x + offsetX, y + offsetY, SIZE / 2f);

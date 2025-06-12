@@ -3,6 +3,9 @@ package io.github.KaabomGame;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.Color;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Bomb {
     private static final float EXPLOSION_TIME = 3f; // segundos hasta explotar
     private static final float EXPLOSION_DURATION = 0.5f; // segundos que dura la explosión
@@ -49,6 +52,19 @@ public class Bomb {
             explosionTimer -= delta;
         }
     }
+
+    public List<int[]> getAffectedTiles() {
+        List<int[]> tiles = new ArrayList<>();
+        tiles.add(new int[]{tileX, tileY});
+        tiles.add(new int[]{tileX - 1, tileY});
+        tiles.add(new int[]{tileX + 1, tileY});
+        tiles.add(new int[]{tileX, tileY + 1});
+        tiles.add(new int[]{tileX, tileY - 1});
+        return tiles;
+    }
+
+
+
 
     public void render(float offsetX, float offsetY) {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
