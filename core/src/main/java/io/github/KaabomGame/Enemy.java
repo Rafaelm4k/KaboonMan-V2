@@ -1,7 +1,12 @@
 package io.github.KaabomGame;
 
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.Color;
+
 import java.util.List;
 import java.util.Random;
 
@@ -9,20 +14,53 @@ public class Enemy {
     private static final float SIZE = 28f;
     private float x, y;
     private float speed = 60;
-    private ShapeRenderer shapeRenderer = new ShapeRenderer();
     private boolean alive = true;
+
     private float moveTimer = 0;
     private float moveInterval = 1.0f; // cada 1 segundo decide nueva dirección
     private int[] currentDirection = {0, 0};
     private Random random = new Random();
 
+    // Para animación
+    private static Texture enemySheet;
+    private static Animation<TextureRegion> animUp, animDown, animLeft, animRight;
+    private static final int FRAME_COLS = 3, FRAME_ROWS = 4; // ajusta según tu spritesheet
+
+    private float stateTime = 0f;
+    private Direction facing = Direction.DOWN;
+
+    private SpriteBatch batch;
+
+    private enum Direction {
+        UP, DOWN, LEFT, RIGHT
+    }
+
     public Enemy(float x, float y) {
         this.x = x;
         this.y = y;
+
+        batch = new SpriteBatch();
+
+        // Cargar animaciones solo una vez
+        if (enemySheet == null) {
+            enemySheet = new Texture("spritesheetenemy1.png"); // pon aquí el nombre correcto
+
+            TextureRegion[][] tmp = TextureRegion.split(enemySheet,
+                enemySheet.getWidth() / FRAME_COLS,
+                enemySheet.getHeight() / FRAME_ROWS);
+
+            // Supongamos filas: 0=Down, 1=Left, 2=Right, 3=Up
+            animDown = new Animation<>(0.15f, tmp[0]);
+            animLeft = new Animation<>(0.15f, tmp[1]);
+            animRight = new Animation<>(0.15f, tmp[2]);
+            animUp = new Animation<>(0.15f, tmp[3]);
+        }
     }
 
     public void update(float delta, Player player, List<Bomb> bombs) {
         if (!alive) return;
+
+        stateTime += delta;
 
         int enemyTileX = (int)(x / GameMap.TILE_SIZE);
         int enemyTileY = (int)(y / GameMap.TILE_SIZE);
@@ -56,6 +94,13 @@ public class Enemy {
                         bestDistance = distance;
                         bestMoveX = moveX;
                         bestMoveY = moveY;
+
+                        // Actualizar dirección para animación
+                        if (Math.abs(moveX) > Math.abs(moveY)) {
+                            facing = moveX > 0 ? Direction.RIGHT : Direction.LEFT;
+                        } else if (Math.abs(moveY) > 0) {
+                            facing = moveY > 0 ? Direction.UP : Direction.DOWN;
+                        }
                     }
                 }
             }
@@ -80,6 +125,13 @@ public class Enemy {
             if (canMoveTo(newX, newY, bombs)) {
                 x = newX;
                 y = newY;
+
+                // Actualizar dirección para animación
+                if (Math.abs(moveX) > Math.abs(moveY)) {
+                    facing = moveX > 0 ? Direction.RIGHT : Direction.LEFT;
+                } else if (Math.abs(moveY) > 0) {
+                    facing = moveY > 0 ? Direction.UP : Direction.DOWN;
+                }
             } else {
                 moveTimer = moveInterval; // fuerza cambio de dirección en siguiente frame
             }
@@ -97,14 +149,34 @@ public class Enemy {
     public void render(float offsetX, float offsetY) {
         if (!alive) return;
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(Color.RED);
-        shapeRenderer.circle(x + offsetX, y + offsetY, SIZE / 2f);
-        shapeRenderer.end();
+        batch.begin();
+
+        Animation<TextureRegion> anim;
+        switch (facing) {
+            case UP:
+                anim = animUp;
+                break;
+            case DOWN:
+                anim = animDown;
+                break;
+            case LEFT:
+                anim = animLeft;
+                break;
+            case RIGHT:
+            default:
+                anim = animRight;
+                break;
+        }
+
+        TextureRegion currentFrame = anim.getKeyFrame(stateTime, true);
+        batch.draw(currentFrame, x + offsetX - SIZE / 2f, y + offsetY - SIZE / 2f, SIZE, SIZE);
+
+        batch.end();
     }
 
     public void dispose() {
-        shapeRenderer.dispose();
+        batch.dispose();
+        if (enemySheet != null) enemySheet.dispose();
     }
 
     public boolean canMoveTo(float newX, float newY, List<Bomb> bombs) {
