@@ -17,7 +17,7 @@ import com.badlogic.gdx.audio.Sound;
 public class GameScreen implements Screen {
     private ArrayList<Bomb> bombs = new ArrayList<>();
     private ArrayList<Enemy> enemies;
-    private ArrayList<Coin> coins = new ArrayList<>(); // Lista de monedas
+    private ArrayList<Coin> coins = new ArrayList<>();
     private HUD hud;
     final Main game;
     private OrthographicCamera camera;
@@ -34,8 +34,6 @@ public class GameScreen implements Screen {
     private Sound enemyDieSound;
     private float damageCooldown = 0f;
 
-
-
     public GameScreen(final Main game) {
         this.game = game;
         camera = new OrthographicCamera();
@@ -45,52 +43,34 @@ public class GameScreen implements Screen {
         pauseFont.getData().setScale(2);
         mapRenderer = new MapRenderer();
         enemies = new ArrayList<>();
-        enemies.add(new Enemy(
-            6 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
-            5 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
-        ));
-        enemies.add(new Enemy(
-            7 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
-            1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
-        ));
-        enemies.add(new Enemy(
-            13 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
-            1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
-        ));
+        enemies.add(new Enemy(6 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            5 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f));
+        enemies.add(new Enemy(7 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f));
+        enemies.add(new Enemy(13 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f));
+        player = new Player();
 
-
-        // Por ejemplo
-        player = new Player();// Inicializa el player
-
-        // Cargar y reproducir música de fondo
         gameMusic = Gdx.audio.newMusic(Gdx.files.internal("music/MusicInGame.ogg"));
         gameMusic.setLooping(true);
-        gameMusic.setVolume(0.2f); // Puedes ajustar el volumen (0.0 a 1.0)
+        gameMusic.setVolume(0.2f);
         gameMusic.play();
 
-
-        // Genera las monedas aleatoriamente sobre bloques destructibles
         generateCoins();
 
-        // Cargar sonidos
         bombPlaceSound = Gdx.audio.newSound(Gdx.files.internal("sounds/PlaceBomb.ogg"));
         explosionSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Explosion.ogg"));
         enemyDieSound = Gdx.audio.newSound(Gdx.files.internal("sounds/EnemyDie.ogg"));
-
-
     }
 
-    // Método para generar monedas sobre bloques destructibles
     private void generateCoins() {
-        // Vamos a generar 5 monedas
         int coinsGenerated = 0;
         while (coinsGenerated < 15) {
-            int x = (int) (Math.random() * GameMap.MAP[0].length); // Obtener una columna aleatoria
-            int y = (int) (Math.random() * GameMap.MAP.length);    // Obtener una fila aleatoria
+            int x = (int) (Math.random() * GameMap.MAP[0].length);
+            int y = (int) (Math.random() * GameMap.MAP.length);
 
-            // Comprobar que haya un bloque destructible en esa posición
             if (GameMap.MAP[GameMap.mapY(y)][x] == GameMap.DESTRUCTIBLE_BLOCK) {
-                coins.add(new Coin(x, y)); // Si es así, generar la moneda
+                coins.add(new Coin(x, y));
                 coinsGenerated++;
             }
         }
@@ -98,6 +78,10 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        if (damageCooldown > 0) {
+            damageCooldown -= delta;
+        }
+
         handleInput();
 
         Gdx.gl.glClearColor(0, 0, 0.2f, 1);
@@ -118,9 +102,15 @@ public class GameScreen implements Screen {
             hud.update(delta);
             checkPlayerEnemyCollision();
 
-
             for (Enemy enemy : enemies) {
                 enemy.update(delta, player, bombs);
+            }
+
+            if (hud.isGameOver()) {
+                gameMusic.stop();
+                game.setScreen(new GameOverScreen(game));
+                dispose();
+                return;
             }
         }
 
@@ -128,14 +118,9 @@ public class GameScreen implements Screen {
             enemy.render(offsetX, offsetY);
         }
 
-
-        // Renderizamos el mapa primero
         mapRenderer.render(offsetX, offsetY, game.batch);
-
-        // Luego el jugador
         player.render(offsetX, offsetY, game.batch);
 
-        // Dibujamos las bombas
         Iterator<Bomb> iter = bombs.iterator();
         while (iter.hasNext()) {
             Bomb bomb = iter.next();
@@ -144,9 +129,9 @@ public class GameScreen implements Screen {
                 iter.remove();
                 bomb.dispose();
                 explosionSound.play(0.7f);
-                // Aquí podemos marcar las monedas que se han revelado
                 revealCoinsAffectedByExplosion(bomb);
                 killEnemiesInExplosion(bomb);
+                damagePlayerIfInExplosion(bomb);
             }
         }
 
@@ -154,17 +139,13 @@ public class GameScreen implements Screen {
             bomb.render(offsetX, offsetY);
         }
 
-        // Dibujamos las monedas solo si están reveladas
         for (Coin coin : coins) {
             if (coinIsRevealed(coin)) {
                 coin.render(offsetX, offsetY);
             }
         }
 
-        // Verificamos si el jugador ha recogido alguna moneda
         collectCoins();
-
-        // Finalmente la HUD
         hud.render(game.batch);
 
         if (paused) {
@@ -173,10 +154,7 @@ public class GameScreen implements Screen {
     }
 
     private void checkPlayerEnemyCollision() {
-        if (damageCooldown > 0) {
-            damageCooldown -= Gdx.graphics.getDeltaTime();
-            return;
-        }
+        if (damageCooldown > 0) return;
 
         for (Enemy enemy : enemies) {
             if (!enemy.isAlive()) continue;
@@ -186,18 +164,18 @@ public class GameScreen implements Screen {
 
             if (dx < GameMap.TILE_SIZE / 2 && dy < GameMap.TILE_SIZE / 2) {
                 hud.loseLife();
-                damageCooldown = 2f; // 2 segundos de invulnerabilidad
+                damageCooldown = 2f;
 
                 if (hud.isGameOver()) {
-                    // Mostrar Game Over o regresar al menú
-                    game.setScreen(new MenuScreen(game)); // puedes cambiar esto a una pantalla de Game Over si quieres
+                    gameMusic.stop();
+                    game.setScreen(new GameOverScreen(game));
+                    dispose();
+                    return;
                 }
-
                 break;
             }
         }
     }
-
 
     private void killEnemiesInExplosion(Bomb bomb) {
         List<int[]> affectedTiles = bomb.getAffectedTiles();
@@ -218,7 +196,29 @@ public class GameScreen implements Screen {
         }
     }
 
+    private void damagePlayerIfInExplosion(Bomb bomb) {
+        List<int[]> affectedTiles = bomb.getAffectedTiles();
 
+        int playerTileX = (int)(player.getX() / GameMap.TILE_SIZE);
+        int playerTileY = (int)(player.getY() / GameMap.TILE_SIZE);
+
+        for (int[] tile : affectedTiles) {
+            if (tile[0] == playerTileX && tile[1] == playerTileY) {
+                if (damageCooldown <= 0) {
+                    hud.loseLife();
+                    damageCooldown = 2f;
+
+                    if (hud.isGameOver()) {
+                        gameMusic.stop();
+                        game.setScreen(new GameOverScreen(game));
+                        dispose();
+                        return;
+                    }
+                }
+                break;
+            }
+        }
+    }
 
     private void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -240,9 +240,9 @@ public class GameScreen implements Screen {
             }
             if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                 if (pauseOption == 0) {
-                    paused = false; // Reanudar
+                    paused = false;
                 } else if (pauseOption == 1) {
-                    game.setScreen(new MenuScreen(game)); // Salir al menú
+                    game.setScreen(new MenuScreen(game));
                 }
             }
         }
@@ -254,60 +254,52 @@ public class GameScreen implements Screen {
 
         if (bombs.size() < 1) {
             bombs.add(new Bomb(tileX, tileY));
-            player.setIgnoreBombTile(tileX, tileY); // <- MUY IMPORTANTE
-            bombPlaceSound.play(0.7f); // Volumen de 0.0 a 1.0
+            player.setIgnoreBombTile(tileX, tileY);
+            bombPlaceSound.play(0.7f);
         }
     }
 
-    // Método para revelar las monedas afectadas por una explosión
     private void revealCoinsAffectedByExplosion(Bomb bomb) {
-        // Aquí comprobamos las celdas afectadas por la explosión
-        revealCoinIfExploded(bomb.getTileX(), bomb.getTileY()); // Centro
-        revealCoinIfExploded(bomb.getTileX() - 1, bomb.getTileY()); // Izquierda
-        revealCoinIfExploded(bomb.getTileX() + 1, bomb.getTileY()); // Derecha
-        revealCoinIfExploded(bomb.getTileX(), bomb.getTileY() + 1); // Arriba
-        revealCoinIfExploded(bomb.getTileX(), bomb.getTileY() - 1); // Abajo
+        revealCoinIfExploded(bomb.getTileX(), bomb.getTileY());
+        revealCoinIfExploded(bomb.getTileX() - 1, bomb.getTileY());
+        revealCoinIfExploded(bomb.getTileX() + 1, bomb.getTileY());
+        revealCoinIfExploded(bomb.getTileX(), bomb.getTileY() + 1);
+        revealCoinIfExploded(bomb.getTileX(), bomb.getTileY() - 1);
     }
 
-    // Verifica si la moneda está en la posición y si es oculta, la revela
     private void revealCoinIfExploded(int x, int y) {
         for (Coin coin : coins) {
             int coinX = (int) (coin.getX() / GameMap.TILE_SIZE);
             int coinY = (int) (coin.getY() / GameMap.TILE_SIZE);
             if (coinX == x && coinY == y) {
-                coin.reveal(); // Revela la moneda
+                coin.reveal();
             }
         }
     }
 
     private boolean coinIsRevealed(Coin coin) {
-        return coin.revealed; // Verifica si la moneda está revelada
+        return coin.revealed;
     }
 
-    // Método para comprobar si el jugador ha recogido una moneda
     private void collectCoins() {
         Iterator<Coin> coinIterator = coins.iterator();
         while (coinIterator.hasNext()) {
             Coin coin = coinIterator.next();
             if (isPlayerOnCoin(coin)) {
-                coinIterator.remove(); // Eliminar la moneda de la lista
-                hud.addScore(1); // Aumentar la puntuación del jugador
+                coinIterator.remove();
+                hud.addScore(1);
             }
         }
     }
 
-    // Verifica si el jugador está sobre la moneda
     private boolean isPlayerOnCoin(Coin coin) {
         float playerX = player.getX();
         float playerY = player.getY();
         float coinX = coin.getX();
         float coinY = coin.getY();
 
-        // Comprobar si el jugador está dentro de un rango cercano de la moneda
         return Math.abs(playerX - coinX) < GameMap.TILE_SIZE / 2 && Math.abs(playerY - coinY) < GameMap.TILE_SIZE / 2;
     }
-
-
 
     private void drawPauseMenu() {
         game.batch.begin();
@@ -317,9 +309,9 @@ public class GameScreen implements Screen {
 
         for (int i = 0; i < pauseOptions.length; i++) {
             if (i == pauseOption) {
-                pauseFont.setColor(1, 1, 0, 1); // Amarillo
+                pauseFont.setColor(1, 1, 0, 1);
             } else {
-                pauseFont.setColor(1, 1, 1, 1); // Blanco
+                pauseFont.setColor(1, 1, 1, 1);
             }
             pauseFont.draw(game.batch, pauseOptions[i], Main.V_WIDTH / 2f - 80, Main.V_HEIGHT / 2f - i * 40);
         }
@@ -340,12 +332,12 @@ public class GameScreen implements Screen {
     @Override public void hide() {}
     @Override public void pause() {}
     @Override public void resume() {}
-    @Override public void dispose() {
+    @Override
+    public void dispose() {
         mapRenderer.dispose();
         hud.dispose();
         pauseFont.dispose();
 
-        // Dispose de las monedas
         for (Coin coin : coins) {
             coin.dispose();
         }
@@ -356,10 +348,7 @@ public class GameScreen implements Screen {
         }
 
         if (bombPlaceSound != null) bombPlaceSound.dispose();
-        if (explosionSound != null) explosionSound.dispose();
+        if (explosionSound != null) bombPlaceSound.dispose();
         if (enemyDieSound != null) enemyDieSound.dispose();
-
     }
 }
-
-
