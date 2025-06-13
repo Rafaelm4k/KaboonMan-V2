@@ -5,7 +5,9 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import java.util.ArrayList;
@@ -34,6 +36,11 @@ public class GameScreen implements Screen {
     private Sound enemyDieSound;
     private float damageCooldown = 0f;
     private ArrayList<PowerUp> powerUps = new ArrayList<>();
+    private Texture background;
+    private SpriteBatch batch;
+
+
+
 
 
 
@@ -48,6 +55,8 @@ public class GameScreen implements Screen {
         pauseFont.getData().setScale(2);
         mapRenderer = new MapRenderer();
         enemies = new ArrayList<>();
+        batch = new SpriteBatch();
+        background = new Texture("Fondo.png"); // Asegurate que esté en assets/
         enemies.add(new Enemy(
             6 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
             5 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
@@ -137,6 +146,9 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
+
+
+
         if (damageCooldown > 0) {
             damageCooldown -= delta;
         }
@@ -174,9 +186,15 @@ public class GameScreen implements Screen {
             }
         }
 
+        batch.begin();
+        batch.draw(background, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        batch.end();
+
+
         for (Enemy enemy : enemies) {
             enemy.render(offsetX, offsetY);
         }
+
 
 
         // Renderizamos el mapa primero
@@ -237,6 +255,7 @@ public class GameScreen implements Screen {
         if (paused) {
             drawPauseMenu();
         }
+
     }
 
     private void checkPlayerEnemyCollision() {
@@ -476,6 +495,9 @@ public class GameScreen implements Screen {
         for (PowerUp powerUp : powerUps) {
             powerUp.dispose();
         }
+
+
+        background.dispose();
 
 
     }

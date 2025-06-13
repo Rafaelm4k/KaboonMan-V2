@@ -3,6 +3,8 @@ package io.github.KaabomGame;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
+import java.awt.*;
+
 public class PowerUp {
     public enum Type {
         SPEED, DOUBLE_BOMB, INVINCIBILITY
@@ -80,9 +82,11 @@ public class PowerUp {
 
 
     private boolean playerCollides(Player player) {
-        return Math.abs(player.getX() - x) < GameMap.TILE_SIZE / 2 &&
-            Math.abs(player.getY() - y) < GameMap.TILE_SIZE / 2;
+        float range = GameMap.TILE_SIZE * 0.65f; // en vez de 0.5 * TILE_SIZE
+        return Math.abs(player.getX() - x) < range &&
+                Math.abs(player.getY() - y) < range;
     }
+
 
     public void dispose() {
         texture.dispose();
