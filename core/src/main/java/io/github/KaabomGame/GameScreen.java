@@ -137,6 +137,10 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        if (damageCooldown > 0) {
+            damageCooldown -= delta;
+        }
+
         handleInput();
 
         Gdx.gl.glClearColor(0, 0, 0.2f, 1);
@@ -160,6 +164,13 @@ public class GameScreen implements Screen {
 
             for (Enemy enemy : enemies) {
                 enemy.update(delta, player, bombs);
+            }
+
+            if (hud.isGameOver()) {
+                gameMusic.stop();
+                game.setScreen(new GameOverScreen(game));
+                dispose();
+                return;
             }
         }
 
@@ -186,6 +197,7 @@ public class GameScreen implements Screen {
                 // Aquí podemos marcar las monedas que se han revelado
                 revealCoinsAffectedByExplosion(bomb);
                 killEnemiesInExplosion(bomb);
+                damagePlayerIfInExplosion(bomb);
             }
         }
 
@@ -253,6 +265,7 @@ public class GameScreen implements Screen {
         }
     }
 
+
     private void killEnemiesInExplosion(Bomb bomb) {
         List<int[]> affectedTiles = bomb.getAffectedTiles();
 
@@ -295,7 +308,29 @@ public class GameScreen implements Screen {
     }
 
 
+    private void damagePlayerIfInExplosion(Bomb bomb) {
+        List<int[]> affectedTiles = bomb.getAffectedTiles();
 
+        int playerTileX = (int)(player.getX() / GameMap.TILE_SIZE);
+        int playerTileY = (int)(player.getY() / GameMap.TILE_SIZE);
+
+        for (int[] tile : affectedTiles) {
+            if (tile[0] == playerTileX && tile[1] == playerTileY) {
+                if (damageCooldown <= 0) {
+                    hud.loseLife();
+                    damageCooldown = 2f;
+
+                    if (hud.isGameOver()) {
+                        gameMusic.stop();
+                        game.setScreen(new GameOverScreen(game));
+                        dispose();
+                        return;
+                    }
+                }
+                break;
+            }
+        }
+    }
 
     private void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
