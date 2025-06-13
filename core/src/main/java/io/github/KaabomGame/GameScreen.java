@@ -33,6 +33,9 @@ public class GameScreen implements Screen {
     private Sound explosionSound;
     private Sound enemyDieSound;
     private float damageCooldown = 0f;
+    private ArrayList<PowerUp> powerUps = new ArrayList<>();
+
+
 
 
 
@@ -72,6 +75,10 @@ public class GameScreen implements Screen {
         // Genera las monedas aleatoriamente sobre bloques destructibles
         generateCoins();
 
+        // Genera PowerUps
+        generatePowerUps();
+
+
         // Cargar sonidos
         bombPlaceSound = Gdx.audio.newSound(Gdx.files.internal("sounds/PlaceBomb.ogg"));
         explosionSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Explosion.ogg"));
@@ -79,6 +86,26 @@ public class GameScreen implements Screen {
 
 
     }
+
+    private void generatePowerUps() {
+        // Ubicaciones fijas (x, y)
+        int[][] fixedPositions = {
+            {5, 3}, {5, 10}, {10,11}, {17, 9},
+            {10, 7}, {12, 5}, {16, 7}, {1, 7},
+            {2, 1}, {7, 9}, {13, 3}, {11, 11}
+        };
+
+        for (int i = 0; i < 12; i++) {
+            PowerUp.Type type;
+            if (i < 4) type = PowerUp.Type.SPEED;
+            else if (i < 8) type = PowerUp.Type.DOUBLE_BOMB;
+            else type = PowerUp.Type.INVINCIBILITY;
+
+            powerUps.add(new PowerUp(fixedPositions[i][0], fixedPositions[i][1], type));
+        }
+    }
+
+
 
     // Método para generar monedas sobre bloques destructibles
     private void generateCoins() {
@@ -163,6 +190,19 @@ public class GameScreen implements Screen {
 
         // Verificamos si el jugador ha recogido alguna moneda
         collectCoins();
+
+
+
+        game.batch.begin();
+
+        for (PowerUp powerUp : powerUps) {
+            powerUp.update(player);
+            powerUp.render(game.batch, offsetX, offsetY);
+        }
+
+        game.batch.end();
+
+
 
         // Finalmente la HUD
         hud.render(game.batch);
@@ -358,6 +398,13 @@ public class GameScreen implements Screen {
         if (bombPlaceSound != null) bombPlaceSound.dispose();
         if (explosionSound != null) explosionSound.dispose();
         if (enemyDieSound != null) enemyDieSound.dispose();
+
+
+        // powerUps
+        for (PowerUp powerUp : powerUps) {
+            powerUp.dispose();
+        }
+
 
     }
 }

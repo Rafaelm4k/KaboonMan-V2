@@ -24,6 +24,17 @@ public class Player {
     private Animation<TextureRegion> camIzq;
     private float stateTime = 0f;
 
+
+    // PowerUps
+    private boolean doubleBombActive = false;
+    private boolean speedActive = false;
+    private boolean invincible = false;
+    private float speedMultiplier = 1f;
+    private float powerUpTimer = 0;
+    private PowerUp.Type currentPowerUp;
+
+
+
     private TextureRegion currentFrame;
     private boolean facingRight = true; // Para saber hacia dónde va el jugador
 
@@ -54,6 +65,29 @@ public class Player {
 
         currentFrame = camDer.getKeyFrame(0);
     }
+
+    public void activatePowerUp(PowerUp.Type type) {
+        currentPowerUp = type;
+
+        switch (type) {
+            case SPEED:
+                speedActive = true;
+                speedMultiplier = 3f;
+                powerUpTimer = 15;
+                break;
+            case DOUBLE_BOMB:
+                doubleBombActive = true;
+                powerUpTimer = 60;
+                break;
+            case INVINCIBILITY:
+                invincible = true;
+                powerUpTimer = 10;
+                break;
+        }
+    }
+
+
+
 
     public void setOffsets(float offsetX, float offsetY) {
         this.offsetX = offsetX;
@@ -111,6 +145,18 @@ public class Player {
         } else {
             currentFrame = camIzq.getKeyFrame(stateTime, true);
         }
+
+        //Update De los PowerUps
+        if (powerUpTimer > 0) {
+            powerUpTimer -= delta;
+            if (powerUpTimer <= 0) {
+                speedActive = false;
+                speedMultiplier = 1f;
+                doubleBombActive = false;
+                invincible = false;
+            }
+        }
+
     }
 
     public void render(float offsetX, float offsetY, SpriteBatch batch) {
