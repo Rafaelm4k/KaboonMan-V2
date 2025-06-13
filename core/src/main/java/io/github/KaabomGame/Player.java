@@ -17,37 +17,34 @@ public class Player {
     private float offsetX = 0;
     private float offsetY = 0;
 
-    // Animaciones para derecha e izquierda
     private Texture camDerSheet;
     private Texture camIzqSheet;
     private Animation<TextureRegion> camDer;
     private Animation<TextureRegion> camIzq;
-    private float stateTime = 0f;
-
-
-    // PowerUps
-    private boolean doubleBombActive = false;
-    private boolean speedActive = false;
-    private boolean invincible = false;
-    private float speedMultiplier = 1f;
-    private float powerUpTimer = 0;
-    private PowerUp.Type currentPowerUp;
-
-
-
     private TextureRegion currentFrame;
-    private boolean facingRight = true; // Para saber hacia dónde va el jugador
+    private float stateTime = 0f;
+    private boolean facingRight = true;
+
+    public enum PowerUpType {
+        SPEED, DOUBLE_BOMB, IMMUNITY, NONE
+    }
+
+    private PowerUpType activePowerUp = PowerUpType.NONE;
+    private float powerUpTimer = 0f;
+
+    private float baseSpeed = 100f;
+    private float speed = 100f;
+    private int maxBombs = 1;
+    private boolean immune = false;
 
     public Player() {
         shapeRenderer = new ShapeRenderer();
         x = 1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f;
         y = 1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f;
 
-        // Cargar sprite sheets para derecha e izquierda
         camDerSheet = new Texture(Gdx.files.internal("spriteheetplayer1.png"));
         camIzqSheet = new Texture(Gdx.files.internal("spriteheetplayer2.png"));
 
-        // Separar frames para derecha
         TextureRegion[][] tmpDer = TextureRegion.split(camDerSheet, camDerSheet.getWidth() / 4, camDerSheet.getHeight());
         TextureRegion[] walkFramesDer = new TextureRegion[4];
         for (int i = 0; i < 4; i++) {
@@ -55,7 +52,6 @@ public class Player {
         }
         camDer = new Animation<>(0.15f, walkFramesDer);
 
-        // Separar frames para izquierda
         TextureRegion[][] tmpIzq = TextureRegion.split(camIzqSheet, camIzqSheet.getWidth() / 4, camIzqSheet.getHeight());
         TextureRegion[] walkFramesIzq = new TextureRegion[4];
         for (int i = 0; i < 4; i++) {
@@ -66,39 +62,46 @@ public class Player {
         currentFrame = camDer.getKeyFrame(0);
     }
 
-    public void activatePowerUp(PowerUp.Type type) {
-        currentPowerUp = type;
+    public void applyPowerUp(PowerUpType type) {
+        System.out.println("Aplicando power-up: " + type);
+        activePowerUp = type;
 
         switch (type) {
             case SPEED:
-                speedActive = true;
-                speedMultiplier = 3f;
+                speed = baseSpeed * 1.5f;
                 powerUpTimer = 15;
                 break;
             case DOUBLE_BOMB:
-                doubleBombActive = true;
-                powerUpTimer = 60;
+                maxBombs = 2;
+                powerUpTimer = 15;
                 break;
-            case INVINCIBILITY:
-                invincible = true;
+            case IMMUNITY:
+                immune = true;
                 powerUpTimer = 10;
                 break;
         }
     }
 
-
-
-
-    public void setOffsets(float offsetX, float offsetY) {
-        this.offsetX = offsetX;
-        this.offsetY = offsetY;
+    private void removeActivePowerUp() {
+        switch (activePowerUp) {
+            case SPEED:
+                speed = baseSpeed;
+                break;
+            case DOUBLE_BOMB:
+                maxBombs = 1;
+                break;
+            case IMMUNITY:
+                immune = false;
+                break;
+        }
+        activePowerUp = PowerUpType.NONE;
+        System.out.println("Power-up expirado");
     }
 
     public void update(float delta, java.util.List<Bomb> bombs) {
-        float moveSpeed = 110 * delta;
+        float moveSpeed = speed * delta;
         float newX = x;
         float newY = y;
-
         boolean moving = false;
 
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
@@ -122,8 +125,6 @@ public class Player {
 
         int currentTileX = (int)(x / GameMap.TILE_SIZE);
         int currentTileY = (int)(y / GameMap.TILE_SIZE);
-
-        // Si el jugador ya salió del tile donde puso la bomba, ya no ignorar
         if (currentTileX != ignoreBombTileX || currentTileY != ignoreBombTileY) {
             ignoreBombTileX = -1;
             ignoreBombTileY = -1;
@@ -132,42 +133,24 @@ public class Player {
         if (canMoveTo(newX, y, bombs)) x = newX;
         if (canMoveTo(x, newY, bombs)) y = newY;
 
-        // Actualizar animación solo si se mueve
         if (moving) {
             stateTime += delta;
         } else {
-            stateTime = 0; // reset para que quede en frame 0 cuando no se mueve
+            stateTime = 0;
         }
 
-        // Seleccionar animación según dirección
-        if (facingRight) {
-            currentFrame = camDer.getKeyFrame(stateTime, true);
-        } else {
-            currentFrame = camIzq.getKeyFrame(stateTime, true);
-        }
+        currentFrame = facingRight ? camDer.getKeyFrame(stateTime, true) : camIzq.getKeyFrame(stateTime, true);
 
-        //Update De los PowerUps
         if (powerUpTimer > 0) {
             powerUpTimer -= delta;
             if (powerUpTimer <= 0) {
-                speedActive = false;
-                speedMultiplier = 1f;
-                doubleBombActive = false;
-                invincible = false;
+                removeActivePowerUp();
             }
         }
-
-    }
-
-    public void render(float offsetX, float offsetY, SpriteBatch batch) {
-        batch.begin();
-        batch.draw(currentFrame, x + offsetX - SIZE/2f, y + offsetY - SIZE/2f, SIZE, SIZE);
-        batch.end();
     }
 
     private boolean canMoveTo(float newX, float newY, java.util.List<Bomb> bombs) {
         float radius = SIZE / 2f;
-
         float left = newX - radius;
         float right = newX + radius;
         float bottom = newY - radius;
@@ -178,7 +161,6 @@ public class Player {
 
         for (Bomb bomb : bombs) {
             if (bomb.getTileX() == nextTileX && bomb.getTileY() == nextTileY) {
-                // Solo ignorar si es la bomba que acabas de poner
                 if (!(bomb.getTileX() == ignoreBombTileX && bomb.getTileY() == ignoreBombTileY)) {
                     return false;
                 }
@@ -199,14 +181,20 @@ public class Player {
                 if (tx < 0 || ty < 0 || ty >= GameMap.MAP.length || tx >= GameMap.MAP[0].length) {
                     return false;
                 }
-
                 int tile = GameMap.MAP[GameMap.mapY(ty)][tx];
                 if (tile != GameMap.EMPTY) {
                     return false;
                 }
             }
         }
+
         return true;
+    }
+
+    public void render(float offsetX, float offsetY, SpriteBatch batch) {
+        batch.begin();
+        batch.draw(currentFrame, x + offsetX - SIZE / 2f, y + offsetY - SIZE / 2f, SIZE, SIZE);
+        batch.end();
     }
 
     public void setIgnoreBombTile(int tileX, int tileY) {
@@ -220,6 +208,19 @@ public class Player {
 
     public float getY() {
         return y;
+    }
+
+    public boolean isImmune() {
+        return immune;
+    }
+
+    public int getMaxBombs() {
+        return maxBombs;
+    }
+
+    public void setOffsets(float offsetX, float offsetY) {
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
     }
 
     public void dispose() {

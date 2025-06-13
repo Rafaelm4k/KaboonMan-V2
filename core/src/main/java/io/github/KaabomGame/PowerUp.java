@@ -40,9 +40,44 @@ public class PowerUp {
     public void update(Player player) {
         if (!taken && playerCollides(player)) {
             taken = true;
-            player.activatePowerUp(type);
+            // Aquí cambia esto:
+            player.applyPowerUp(convertToPlayerPowerUpType(type));
         }
     }
+
+    private Player.PowerUpType convertToPlayerPowerUpType(Type type) {
+        switch(type) {
+            case SPEED:
+                return Player.PowerUpType.SPEED;
+            case DOUBLE_BOMB:
+                return Player.PowerUpType.DOUBLE_BOMB;
+            case INVINCIBILITY:
+                return Player.PowerUpType.IMMUNITY;
+            default:
+                return Player.PowerUpType.NONE;
+        }
+    }
+
+
+    public Type getType() {
+        return type;
+    }
+
+
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public Player.PowerUpType getAsPlayerType() {
+        return convertToPlayerPowerUpType(type);
+    }
+
+
+
 
     private boolean playerCollides(Player player) {
         return Math.abs(player.getX() - x) < GameMap.TILE_SIZE / 2 &&

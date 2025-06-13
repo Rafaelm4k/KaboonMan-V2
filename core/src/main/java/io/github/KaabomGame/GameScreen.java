@@ -60,6 +60,18 @@ public class GameScreen implements Screen {
             13 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
             1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
         ));
+        enemies.add(new Enemy(
+            13 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            9 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
+        ));
+        enemies.add(new Enemy(
+            1 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            9 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
+        ));
+        enemies.add(new Enemy(
+            10 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f,
+            13 * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2f
+        ));
 
 
         // Por ejemplo
@@ -192,6 +204,9 @@ public class GameScreen implements Screen {
         collectCoins();
 
 
+        // recolectar powerUps
+        collectPowerUps();
+
 
         game.batch.begin();
 
@@ -238,7 +253,6 @@ public class GameScreen implements Screen {
         }
     }
 
-
     private void killEnemiesInExplosion(Bomb bomb) {
         List<int[]> affectedTiles = bomb.getAffectedTiles();
 
@@ -257,6 +271,29 @@ public class GameScreen implements Screen {
             }
         }
     }
+
+    private void collectPowerUps() {
+        Iterator<PowerUp> iterator = powerUps.iterator();
+        while (iterator.hasNext()) {
+            PowerUp powerUp = iterator.next();
+            if (isPlayerOnPowerUp(powerUp)) {
+                player.applyPowerUp(powerUp.getAsPlayerType());
+                iterator.remove(); // Lo elimina del mapa
+                powerUp.dispose(); // Liberá la textura si tenés
+            }
+        }
+    }
+
+    private boolean isPlayerOnPowerUp(PowerUp powerUp) {
+        float playerX = player.getX();
+        float playerY = player.getY();
+        float puX = powerUp.getX();
+        float puY = powerUp.getY();
+
+        return Math.abs(playerX - puX) < GameMap.TILE_SIZE / 2 &&
+            Math.abs(playerY - puY) < GameMap.TILE_SIZE / 2;
+    }
+
 
 
 
