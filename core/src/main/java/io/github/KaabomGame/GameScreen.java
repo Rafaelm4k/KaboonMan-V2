@@ -234,9 +234,18 @@ public class GameScreen implements Screen {
         // Finalmente la HUD
         hud.render(game.batch);
 
+        if (hud.getScore() >= 15) {
+            gameMusic.stop();
+            game.setScreen(new VictoryScreen(game));
+            dispose();
+            return;
+        }
+
         if (paused) {
             drawPauseMenu();
         }
+
+
     }
 
     private void checkPlayerEnemyCollision() {
