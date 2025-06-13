@@ -46,9 +46,29 @@ public class Enemy {
         if (!alive) return;
 
         stateTime += delta;
-
         moveTimer += delta;
-        if (moveTimer >= moveInterval) {
+
+        int enemyTileX = (int)(x / GameMap.TILE_SIZE);
+        int enemyTileY = (int)(y / GameMap.TILE_SIZE);
+        int playerTileX = (int)(player.getX() / GameMap.TILE_SIZE);
+        int playerTileY = (int)(player.getY() / GameMap.TILE_SIZE);
+
+        int dx = playerTileX - enemyTileX;
+        int dy = playerTileY - enemyTileY;
+
+        boolean playerNearby = Math.abs(dx) <= 3 && Math.abs(dy) <= 3;
+
+        if (playerNearby) {
+            // Perseguir al jugador (prioridad eje X, luego eje Y)
+            if (Math.abs(dx) > Math.abs(dy)) {
+                currentDirection[0] = Integer.signum(dx);
+                currentDirection[1] = 0;
+            } else {
+                currentDirection[0] = 0;
+                currentDirection[1] = Integer.signum(dy);
+            }
+        } else if (moveTimer >= moveInterval) {
+            // Movimiento aleatorio
             moveTimer = 0;
             int[][] directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
             currentDirection = directions[random.nextInt(directions.length)];
@@ -63,9 +83,10 @@ public class Enemy {
             x = newX;
             y = newY;
         } else {
-            moveTimer = moveInterval; // fuerza cambio de dirección
+            moveTimer = moveInterval; // Fuerza cambio de dirección
         }
     }
+
 
     public boolean isAlive() {
         return alive;
