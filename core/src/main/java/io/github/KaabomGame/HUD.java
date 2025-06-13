@@ -38,6 +38,11 @@ public class HUD {
         this.score += value;
     }
 
+    // Nuevo método para obtener el puntaje actual
+    public int getScore() {
+        return score;
+    }
+
     public void loseLife() {
         if (lives > 0) {
             lives--;
